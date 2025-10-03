@@ -61,7 +61,7 @@ import { makeMessagesSocket } from './messages-send'
 
 
 export const makeMessagesRecvSocket = (config: SocketConfig) => {
-	const { logger, retryRequestDelayMs, maxMsgRetryCount, getMessage, shouldIgnoreJid } = config
+	const { logger, retryRequestDelayMs, maxMsgRetryCount, getMessage, shouldIgnoreJid, shouldSendMessageAck = true } = config
 	const sock = makeMessagesSocket(config)
 	const {
 		ev,
@@ -618,11 +618,11 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		for (const [i, msg] of msgs.entries()) {
 			if (msg) {
 				updateSendMessageAgainCount(ids[i], participant)
-				const msgRelayOpts: MessageRelayOptions = { messageId: ids[i], isretry:true }				
-					msgRelayOpts.participant = {
-						jid: participant,
-						count: +retryNode.attrs.count					
-					
+				const msgRelayOpts: MessageRelayOptions = { messageId: ids[i], isretry: true }
+				msgRelayOpts.participant = {
+					jid: participant,
+					count: +retryNode.attrs.count
+
 				}
 
 				await relayMessage(key.remoteJid!, msg, msgRelayOpts,)
@@ -867,7 +867,9 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 
 					cleanMessage(msg, authState.creds.me!.id)
 
-					await sendMessageAck(node)
+					if (shouldSendMessageAck) {
+						await sendMessageAck(node)
+					}
 
 					await upsertMessage(msg, node.attrs.offline ? 'append' : 'notify')
 				})
@@ -945,13 +947,11 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		const callId = infoChild.attrs['call-id']
 		const from = infoChild.attrs.from || infoChild.attrs['call-creator']
 		status = getCallStatusFromNode(infoChild)
-		if(isLidUser(from) && infoChild.tag==='relaylatency')
-		{
+		if (isLidUser(from) && infoChild.tag === 'relaylatency') {
 			const verify = callOfferCache.get(callId);
-			if(!verify)
-			{
+			if (!verify) {
 				status = 'offer';
-				callOfferCache.set(callId,true);
+				callOfferCache.set(callId, true);
 			}
 
 		}
@@ -982,9 +982,8 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		// delete data once call has ended
 		if (status === 'reject' || status === 'accept' || status === 'timeout' || status === 'terminate') {
 			callOfferCache.del(call.id)
-			if(isLidUser(from))
-			{
-			 callOfferCache.del(from)	
+			if (isLidUser(from)) {
+				callOfferCache.del(from)
 			}
 		}
 

@@ -96,6 +96,11 @@ export type SocketConfig = {
 	generateHighQualityLinkPreview: boolean
 
 	/**
+	 * whether to send a message ack (read receipt) when a message is received,
+	 * */
+	shouldSendMessageAck?: boolean
+
+	/**
 	 * Returns if a jid should be ignored,
 	 * no event for that jid will be triggered.
 	 * Messages from that jid will also not be decrypted
